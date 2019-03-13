@@ -4,6 +4,7 @@ import javax.imageio.ImageIO;
 import java.awt.image.BufferedImage;
 import java.io.*;
 import java.net.InetAddress;
+import java.net.ServerSocket;
 import java.net.Socket;
 import java.nio.file.Files;
 import java.nio.file.Paths;
@@ -154,6 +155,50 @@ public class QueryHandler implements Runnable {
             e.printStackTrace();
         }
     }
+
+
+    public void DownloadFromUser(String fileName)
+    {
+        try
+        {
+            System.out.println("Opening new socket for client to connect...");
+            ServerSocket server = new ServerSocket(4000);
+            Socket socket = server.accept();
+            System.out.println(" Accepted connection with client.\nRetrieving input stream...");
+            InputStream inStream = socket.getInputStream();
+            DataInputStream dis = new DataInputStream(inStream);
+
+            int dataLength = dis.readInt();
+            byte[] data = new byte[dataLength];
+            dis.readFully(data);
+            dis.close();
+            inStream.close();
+            System.out.println(" Finished receiving input stream.\nConverting to file...");
+
+            InputStream bais = new ByteArrayInputStream(data);
+            String filePath = this.dirPath + "/images/" + fileName;
+            OutputStream toFile = new FileOutputStream(filePath);
+            byte[] buffer = new byte[1024];
+            int bytesRead;
+            while ((bytesRead = bais.read(buffer)) != -1)
+            {	System.out.println(" Bytes read of length: " + bytesRead);
+                toFile.write(buffer, 0, bytesRead);
+            }
+            bais.close();
+            toFile.flush();
+            toFile.close();
+            server.close();
+            System.out.println(" ...Finished!\n");
+            writeToLog("received image", fileName);
+
+            ReadImagesFromFile();
+        }
+
+        catch (Exception e)
+        {	e.printStackTrace();
+        }
+    }
+
 
 
     @Override
