@@ -10,12 +10,9 @@ import java.nio.file.Paths;
 import java.nio.file.StandardOpenOption;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
-import java.util.ArrayList;
-import java.util.Calendar;
-import java.util.Date;
-import java.util.Scanner;
+import java.util.*;
 
-public class QueryHandler implements Runnable{
+public class QueryHandler implements Runnable {
 
     private Scanner reader = null;
     private PrintWriter writer = null;
@@ -39,8 +36,7 @@ public class QueryHandler implements Runnable{
     }
 
 
-    private void Send(String message)
-    {
+    private void Send(String message) {
         this.writer.println(message);
         System.out.println("[SERVER RESPOND] " + message);
     }
@@ -55,21 +51,18 @@ public class QueryHandler implements Runnable{
             }
         }
 
-        if (this.message.startsWith("requesting::"))
-        {	SendFileToUser(fileName); }
-//        else if (this.message.startsWith("sending::"))
-//        {	DownloadFromUser(fileName); }
-        else if (this.message.startsWith("requestlist::"))
-        {	SendImageList(); }
-        else
-        {	Send("Invalid query: " + this.message); }
+        if (this.message.startsWith("requesting::")) {
+            SendFileToUser(fileName);
+        } else if (this.message.startsWith("requestlist::")) {
+            SendImageList();
+        } else {
+            Send("Invalid query: " + this.message);
+        }
 
     }
 
 
-
-    private void ReadImagesFromFile()
-    {
+    private void ReadImagesFromFile() {
 
         System.out.println("Indexing own base...");
         File dir = new File(this.dirPath + "/images");
@@ -85,14 +78,12 @@ public class QueryHandler implements Runnable{
 
     }
 
-    public void SendFileToUser(String fileName)
-    {
-        try
-        {
+    public void SendFileToUser(String fileName) {
+        try {
             int dotLocation = fileName.lastIndexOf(".");
             String fileType = "";
-            if (dotLocation > 0)
-            {	fileType = fileName.substring(dotLocation+1);
+            if (dotLocation > 0) {
+                fileType = fileName.substring(dotLocation + 1);
             }
             System.out.println("Detected file type: " + fileType);
             System.out.println("Analyzing file: /images/" + fileName);
@@ -119,18 +110,14 @@ public class QueryHandler implements Runnable{
             outStream.close();
             soc.close();
             writeToLog("image sent", fileName);
-        }
-
-        catch (Exception e)
-        {	e.printStackTrace();
+        } catch (Exception e) {
+            e.printStackTrace();
         }
 
     }
 
 
-
-    public void SendImageList()
-    {
+    public void SendImageList() {
         ReadImagesFromFile();
         Send(Integer.toString(imageList.size()));
         for (String anImageList : this.imageList) {
@@ -139,19 +126,16 @@ public class QueryHandler implements Runnable{
         Send("stop::");
     }
 
-    private void writeToLog(String functionRequested, String filename)
-    {
+    private void writeToLog(String functionRequested, String filename) {
         File log = new File("servlog.txt");
 
-        if (!log.exists())
-        {
-            try
-            {	PrintWriter writer = new PrintWriter("servlog.txt", "UTF-8");
+        if (!log.exists()) {
+            try {
+                PrintWriter writer = new PrintWriter("servlog.txt", "UTF-8");
                 writer.write("");
                 writer.close();
-            }
-            catch (Exception e)
-            {	e.printStackTrace();
+            } catch (Exception e) {
+                e.printStackTrace();
             }
         }
         // Create a new Date object and read date and time from it as strings.
@@ -163,24 +147,35 @@ public class QueryHandler implements Runnable{
         String time = timeFormat.format(currentDateTime);
         String toLog = date + " : " + time + " : " + this.clientAddress + " : " + request + "\n";
         // Write to serverlog.txt
-        try
-        {	Files.write((Paths.get("servlog.txt")), toLog.getBytes(), StandardOpenOption.APPEND);
+        try {
+            Files.write((Paths.get("servlog.txt")), toLog.getBytes(), StandardOpenOption.APPEND);
             System.out.println("Event has been logged.");
-        }
-        catch (IOException e)
-        {	e.printStackTrace();
+        } catch (IOException e) {
+            e.printStackTrace();
         }
     }
 
 
-
-
-
-
-
-
-        @Override
+    @Override
     public void run() {
-
+        while (true) {
+            try {
+                this.message = reader.nextLine();
+                while (this.message != null) {
+                    System.out.println("Server read: " + this.message + "\n");
+                    handleQuery();
+                    System.out.println("Listening for message...");
+                    this.message = reader.nextLine();
+                }
+            } catch (NoSuchElementException nsee) {
+                reader.close();
+                writer.close();
+                System.out.println("Client disconnected.");
+                writeToLog("client disconnected", "");
+                break;
+            }
+        }
     }
+
+
 }
