@@ -54,7 +54,11 @@ public class QueryHandler implements Runnable {
 
         if (this.message.startsWith("requesting::")) {
             SendFileToUser(fileName);
-        } else if (this.message.startsWith("requestlist::")) {
+        }
+        else if (this.message.startsWith("sending::"))
+        {	DownloadFromUser(fileName);
+        }
+        else if (this.message.startsWith("requestlist::")) {
             SendImageList();
         } else {
             Send("Invalid query: " + this.message);
@@ -98,7 +102,7 @@ public class QueryHandler implements Runnable {
             System.out.println("Byte array with " + bytes.length + " length created.");
 
             System.out.println("Opening new socket to connect to user.");
-            Socket soc = new Socket(this.clientAddress, 4000);
+            Socket soc = new Socket(this.clientAddress, 5000);
             System.out.println("Opening stream with user.");
             OutputStream outStream = soc.getOutputStream();
             DataOutputStream dos = new DataOutputStream(outStream);
@@ -162,7 +166,7 @@ public class QueryHandler implements Runnable {
         try
         {
             System.out.println("Opening new socket for client to connect...");
-            ServerSocket server = new ServerSocket(4000);
+            ServerSocket server = new ServerSocket(5000);
             Socket socket = server.accept();
             System.out.println(" Accepted connection with client.\nRetrieving input stream...");
             InputStream inStream = socket.getInputStream();

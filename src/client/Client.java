@@ -18,13 +18,11 @@ public class Client {
     private String messageIn = null;
     public ArrayList<String> serverImageList = null;
     private String dirPath ;
+    public ArrayList<String> imageList = null;
+    public File[] fileList = null;
 
     private WallChanger changer;
 
-
-    // experimental
-    public ArrayList<String> imageList = null;
-    public File[] fileList = null;
 
     public Client(String host, int port) {
         hostServ=host;
@@ -34,19 +32,17 @@ public class Client {
             Socket socket = new Socket(host, port);
             socketInbound = new Scanner(socket.getInputStream());
             socketOut = new PrintWriter(socket.getOutputStream(), true);
-
-
             keyIn = new Scanner(System.in);
-            String intro = socketInbound.nextLine();
-            while (true)
-            {	System.out.println(intro);
-                intro = socketInbound.nextLine();
-                if (intro.equals("stop::"))
-                {
-                    break;
-                }
-            }
-            getImageList();
+//            String intro = socketInbound.nextLine();
+//            while (true)
+//            {	System.out.println(intro);
+//                intro = socketInbound.nextLine();
+//                if (intro.equals("stop::"))
+//                {
+//                    break;
+//                }
+//            }
+//            getImageList();
             //TODO read files
             cacheImages();
         } catch (UnknownHostException e) {
@@ -76,9 +72,11 @@ public class Client {
 
     public void downloadFromServer(String fileName){
         socketOut.println("requesting::" + fileName);
-        try {
+        try (ServerSocket server = new ServerSocket(5000))
+        {
+
             System.out.println("Opening the new socket for connection...");
-            ServerSocket server = new ServerSocket(3001);
+
             Socket socket = server.accept();
             System.out.println(" Connection with server is established.\nRetrieving input stream...");
             InputStream inStream = socket.getInputStream();
@@ -103,9 +101,7 @@ public class Client {
             bais.close();
             toFile.flush();
             toFile.close();
-            server.close();
             System.out.println(" ...Finished!\n");
-
             //TODO conversation
             cacheImages();
 
@@ -119,7 +115,9 @@ public class Client {
     public void sendToServer(String fileName)
     {
         socketOut.println("sending::" + fileName);
-        try
+        try (Socket soc = new Socket(this.hostServ, 5000);
+             DataOutputStream dos = new DataOutputStream(soc.getOutputStream())
+        )
         {
             int dot = fileName.lastIndexOf(".");
             String fileType = "";
@@ -138,18 +136,11 @@ public class Client {
             System.out.println("Byte array of length " + bytes.length + " created.");
 
             System.out.println("Opening new socket to connect to server.");
-            Socket soc = new Socket(this.hostServ, 4000);
             System.out.println("Opening streams with server.");
-            OutputStream outStream = soc.getOutputStream();
-            DataOutputStream dos = new DataOutputStream(outStream);
-
             System.out.println("Writing to server stream.");
             dos.writeInt(bytes.length);
             dos.write(bytes, 0, bytes.length);
             System.out.println("Closing streams/socket.");
-            dos.close();
-            outStream.close();
-            soc.close();
         }
 
         catch (Exception e)
@@ -181,6 +172,12 @@ public class Client {
         System.out.println();
     }
 
+    /**
+     * Reads input from terminal, which should be one of the following:
+     * requesting::[filename], sending::[filename], requestlist::
+     * Calls appropriate method if input is valid. Does not send
+     * query to server if e.g. file does not exist.
+     **/
     protected void queryTaker()
     {
         String messageOut;
@@ -214,7 +211,7 @@ public class Client {
                 if (messageOut.startsWith("sending::") && imageList.contains(fileName))
                 {
                     error = false;
-                    System.out.println("Not implemented yet");
+                    System.out.println("Ohoh");
                     sendToServer(fileName);
                 }
             }
@@ -227,6 +224,19 @@ public class Client {
                 System.out.println("   * requestlist::");
             }
         }
+    }
+
+    protected void setWallPaper(String fileName) throws IOException {
+        System.out.println("Setting "+ fileName +" as the main wallpaper... ");
+        changer.changeWallpaper(dirPath+ "/images/" + fileName);
+        System.out.println("Successfully set");
+    }
+
+    public static void main(String[] args)
+    {
+        String host = "127.0.0.1"; 				 //args[0]
+        Client ic = new Client(host, 6000);
+        ic.queryTaker();
     }
 
 
