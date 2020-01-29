@@ -8,7 +8,6 @@ import java.io.IOException;
 
 public class WallChanger {
 
-
     public void setMac(String path) throws IOException {
         String as[] = {
                 "osascript",
@@ -17,26 +16,13 @@ public class WallChanger {
                 "-e", "end tell"
         };
         Runtime runtime = Runtime.getRuntime();
-        Process process = runtime.exec(as);
+        runtime.exec(as);
     }
-
-
-    /**
-     *
-     * @param uiAction - ActionID is an user specified parameter for Windows Settings
-     * @param uiParam -
-     * @param pvParam - Additional info for parametr
-     * @param fWinIni
-     * @return
-     */
-    public static native int SystemParametersInfo(int uiAction, int uiParam, String pvParam, int fWinIni);
-
 
     public static interface User32 extends Library {
         User32 INSTANCE = (User32) Native.loadLibrary("user32",User32.class, W32APIOptions.DEFAULT_OPTIONS);
         boolean SystemParametersInfo (int one, int two, String s ,int three);
     }
-
 
 
     /**
@@ -48,17 +34,8 @@ public class WallChanger {
 
         if (OsDefiner.isWindows())
              User32.INSTANCE.SystemParametersInfo(0x0014, 0, path, 1);
-        else if (OsDefiner.isUnix())
+        else if (OsDefiner.isMac() || OsDefiner.isUnix())
             setMac(path);
 
     }
-
-
-
-
-
-
-
-
-
 }

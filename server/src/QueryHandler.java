@@ -1,5 +1,3 @@
-package server;
-
 import javax.imageio.ImageIO;
 import java.awt.image.BufferedImage;
 import java.io.*;
@@ -22,7 +20,7 @@ public class QueryHandler implements Runnable {
     public ArrayList<String> imageList = null;
     public File[] fileList = null;
     private String dirPath = null;
-    private Calendar calendar = null;
+
 
 
     public QueryHandler(Socket client) {
@@ -46,6 +44,7 @@ public class QueryHandler implements Runnable {
         String fileName = "";
         // Retrieve filename from terminal query.
         int separatorPos = this.message.lastIndexOf("::");
+        //TODO redundant right !
         if ((separatorPos > 0) && this.message.contains("::")) {
             if (!this.message.endsWith("::")) {
                 fileName = this.message.substring(separatorPos + 2);
@@ -54,11 +53,9 @@ public class QueryHandler implements Runnable {
 
         if (this.message.startsWith("requesting::")) {
             SendFileToUser(fileName);
-        }
-        else if (this.message.startsWith("sending::"))
-        {	DownloadFromUser(fileName);
-        }
-        else if (this.message.startsWith("requestlist::")) {
+        } else if (this.message.startsWith("sending::")) {
+            DownloadFromUser(fileName);
+        } else if (this.message.startsWith("requestlist::")) {
             SendImageList();
         } else {
             Send("Invalid query: " + this.message);
@@ -67,15 +64,18 @@ public class QueryHandler implements Runnable {
     }
 
 
-    private void ReadImagesFromFile() {
+    private void ScanImagesFromDisk() {
 
         System.out.println("Indexing own base...");
         File dir = new File(this.dirPath + "/images");
-        this.fileList = dir.listFiles();
+        this.fileList = dir.listFiles((dir1, name) -> name.toLowerCase().endsWith(".jpg")
+                ||name.toLowerCase().endsWith(".png") ||name.toLowerCase().endsWith(".jpeg")
+                || name.toLowerCase().endsWith(".bmp") || name.toLowerCase().endsWith(".gif")
+                 || name.toLowerCase().endsWith(".png") ||name.toLowerCase().endsWith(".tif"));
         this.imageList = new ArrayList<String>(this.fileList.length);
         for (File file : this.fileList) {
             if (file.isFile()) {
-                System.out.println(" adding " + file.getName());
+                System.out.println(" adding: " + file.getName());
                 this.imageList.add(file.getName());
             }
         }
@@ -101,20 +101,22 @@ public class QueryHandler implements Runnable {
             baos.close();
             System.out.println("Byte array with " + bytes.length + " length created.");
 
+
             System.out.println("Opening new socket to connect to user.");
-            Socket soc = new Socket(this.clientAddress, 5000);
-            System.out.println("Opening stream with user.");
+            Socket soc = new Socket(this.clientAddress, 51712);
+            System.out.println("Opening streams with user.");
             OutputStream outStream = soc.getOutputStream();
             DataOutputStream dos = new DataOutputStream(outStream);
 
             System.out.println("Writing to user stream.");
             dos.writeInt(bytes.length);
             dos.write(bytes, 0, bytes.length);
-            System.out.println("Closing stream and socket.");
+            System.out.println("Closing streams/socket.");
             dos.close();
             outStream.close();
             soc.close();
-            writeToLog("image sent", fileName);
+            writeToLog("sent image", fileName);
+
         } catch (Exception e) {
             e.printStackTrace();
         }
@@ -123,7 +125,7 @@ public class QueryHandler implements Runnable {
 
 
     public void SendImageList() {
-        ReadImagesFromFile();
+        ScanImagesFromDisk();
         Send(Integer.toString(imageList.size()));
         for (String anImageList : this.imageList) {
             Send(anImageList);
@@ -161,12 +163,10 @@ public class QueryHandler implements Runnable {
     }
 
 
-    public void DownloadFromUser(String fileName)
-    {
-        try
-        {
+    public void DownloadFromUser(String fileName) {
+        try {
             System.out.println("Opening new socket for client to connect...");
-            ServerSocket server = new ServerSocket(5000);
+            ServerSocket server = new ServerSocket(51712);
             Socket socket = server.accept();
             System.out.println(" Accepted connection with client.\nRetrieving input stream...");
             InputStream inStream = socket.getInputStream();
@@ -180,12 +180,13 @@ public class QueryHandler implements Runnable {
             System.out.println(" Finished receiving input stream.\nConverting to file...");
 
             InputStream bais = new ByteArrayInputStream(data);
+            System.out.println(this.dirPath);
             String filePath = this.dirPath + "/images/" + fileName;
             OutputStream toFile = new FileOutputStream(filePath);
             byte[] buffer = new byte[1024];
             int bytesRead;
-            while ((bytesRead = bais.read(buffer)) != -1)
-            {	System.out.println(" Bytes read of length: " + bytesRead);
+            while ((bytesRead = bais.read(buffer)) != -1) {
+                System.out.println(" Bytes read of length: " + bytesRead);
                 toFile.write(buffer, 0, bytesRead);
             }
             bais.close();
@@ -195,14 +196,11 @@ public class QueryHandler implements Runnable {
             System.out.println(" ...Finished!\n");
             writeToLog("received image", fileName);
 
-            ReadImagesFromFile();
-        }
-
-        catch (Exception e)
-        {	e.printStackTrace();
+            ScanImagesFromDisk();
+        } catch (Exception e) {
+            e.printStackTrace();
         }
     }
-
 
 
     @Override

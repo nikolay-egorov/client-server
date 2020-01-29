@@ -1,5 +1,3 @@
-package server;
-
 import java.io.IOException;
 import java.net.ServerSocket;
 import java.net.Socket;
@@ -45,5 +43,6 @@ public class ServerBase {
 
     public static void main(String[] args) {
         ServerBase s= new ServerBase(6000,5);
+        System.out.println("Server is running. Terminate the process for shut down.");
     }
 }

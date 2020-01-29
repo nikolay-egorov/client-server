@@ -1,5 +1,7 @@
 package client;
 
+import com.sun.xml.internal.ws.policy.privateutil.PolicyUtils;
+
 import java.io.IOException;
 import java.util.Scanner;
 
@@ -33,10 +35,11 @@ public class Querier {
         System.out.println("Welcome! Enter server address: ");
         String host ;
         int port;
-        host = in.nextLine();
+//        host = in.nextLine();
+        //loopback !
         System.out.println("And do specify the port: ");
         port = in.nextInt();
-        Querier querier=new Querier(host,port);
+        Querier querier=new Querier("127.0.0.1",port);
 
     }
 }
